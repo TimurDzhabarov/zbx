@@ -1,0 +1,353 @@
+zabbix_export:
+  version: '6.2'
+  date: '2023-03-13T14:18:22Z'
+  template_groups:
+    -
+      uuid: e960332b3f6c46a1956486d4f3f99fce
+      name: 'Templates/Server hardware'
+  templates:
+    -
+      uuid: 7e271702ea2c4dd7a8b267bfc8ab3b81
+      template: Storeonce
+      name: Storeonce
+      groups:
+        -
+          name: 'Templates/Server hardware'
+      items:
+        -
+          uuid: bb0417ad759848eda0d80dca3d4be1b8
+          name: 'Storeonce alerts count'
+          type: DEPENDENT
+          key: storeonce.alerts.count
+          delay: '0'
+          trends: '0'
+          value_type: TEXT
+          preprocessing:
+            -
+              type: JSONPATH
+              parameters:
+                - $.count
+          master_item:
+            key: 'storeonce.sh[HPEalerts]'
+          tags:
+            -
+              tag: ALERTS
+          triggers:
+            -
+              uuid: 9bfc8c716a714965b4fc2e65df0997df
+              expression: last(/Storeonce/storeonce.alerts.count)<>0
+              name: 'Storeonce alerts {ITEM.LASTVALUE}'
+              priority: HIGH
+        -
+          uuid: 1b24b28c5ef4458fa956f0b2e53705aa
+          name: HPEAlerts
+          type: EXTERNAL
+          key: 'storeonce.sh[HPEalerts]'
+          trends: '0'
+          value_type: TEXT
+          tags:
+            -
+              tag: ALERTS
+        -
+          uuid: b1fcc9972f6e474588f16458d4c99e94
+          name: HPEHostname
+          type: EXTERNAL
+          key: 'storeonce.sh[HPEHostname]'
+          delay: 1d
+          trends: '0'
+          value_type: TEXT
+          tags:
+            -
+              tag: INFO
+        -
+          uuid: 4ebd1f62ac144f4da8ffceeeae671943
+          name: HPEOSpercentageDiskUsage
+          type: EXTERNAL
+          key: 'storeonce.sh[HPEOSpercentageDiskUsage]'
+          trends: '0'
+          value_type: TEXT
+          preprocessing:
+            -
+              type: JSONPATH
+              parameters:
+                - $.percentageDiskUsage
+          tags:
+            -
+              tag: DISK
+          triggers:
+            -
+              uuid: 4552cb787ee24383916f4dffce9afe46
+              expression: 'last(/Storeonce/storeonce.sh[HPEOSpercentageDiskUsage])>1'
+              name: 'Storeonce high disk usage {ITEM.LASTVALUE}'
+              priority: HIGH
+              description: 1=100%
+        -
+          uuid: 5923ae34af5d4825bbfeb8d71b068f17
+          name: HPEpercentageCpuUsage
+          type: EXTERNAL
+          key: 'storeonce.sh[HPEpercentageCpuUsage]'
+          trends: '0'
+          value_type: TEXT
+          tags:
+            -
+              tag: CPU
+        -
+          uuid: 2c549eb9eae6407d9e98512e157af817
+          name: HPEpercentageMemoryUsage
+          type: EXTERNAL
+          key: 'storeonce.sh[HPEpercentageMemoryUsage]'
+          trends: '0'
+          value_type: TEXT
+          preprocessing:
+            -
+              type: JSONPATH
+              parameters:
+                - $..percentageMemoryUsage
+          tags:
+            -
+              tag: RAM
+          triggers:
+            -
+              uuid: 41885583b78f4efe88339d62647a443d
+              expression: 'last(/Storeonce/storeonce.sh[HPEpercentageMemoryUsage])>90'
+              name: 'Storeonce high MEMORY usage  {ITEM.LASTVALUE}'
+              priority: HIGH
+        -
+          uuid: 4365983ddabf403e9c65d0294cacd917
+          name: HPEVersion
+          type: EXTERNAL
+          key: 'storeonce.sh[HPEVersion]'
+          delay: 1h
+          trends: '0'
+          value_type: TEXT
+          tags:
+            -
+              tag: Dahboard
+      discovery_rules:
+        -
+          uuid: 70ab5a5461264a5e895dcbc520d5856a
+          name: 'Discovery storeonce CPU'
+          type: DEPENDENT
+          key: storeonce.cpu
+          delay: '0'
+          lifetime: 7d
+          item_prototypes:
+            -
+              uuid: bffd0ecf4c464cfeadef131d22ada25d
+              name: 'Storeonce CPU USAGE'
+              type: DEPENDENT
+              key: 'storeonce.cpu[{#SLOT}]'
+              delay: '0'
+              trends: '0'
+              value_type: TEXT
+              description: |
+                CPUSYSTEM: {#CPUSYS}
+                CPUUSER: {#CPUUSER}
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - '$.[{#SLOT}].percentageCpuUsage'
+              master_item:
+                key: 'storeonce.sh[HPEpercentageCpuUsage]'
+              tags:
+                -
+                  tag: CPU
+              trigger_prototypes:
+                -
+                  uuid: e7614e57f24d448bb0c6e59ca90ea67c
+                  expression: 'last(/Storeonce/storeonce.cpu[{#SLOT}])>90'
+                  name: 'Storeonce high CPU usage  {ITEM.LASTVALUE}'
+                  priority: HIGH
+          master_item:
+            key: 'storeonce.sh[HPEpercentageCpuUsage]'
+          lld_macro_paths:
+            -
+              lld_macro: '{#SLOT}'
+              path: $.slot
+            -
+              lld_macro: '{#CPUUSAGE}'
+              path: $.percentageCpuUsage
+            -
+              lld_macro: '{#CPUUSER}'
+              path: $.percentageUser
+            -
+              lld_macro: '{#CPUSYS}'
+              path: $.percentageSys
+        -
+          uuid: 29947179aa314eb29cadc51d4cc3073e
+          name: 'Discovery dashboard info'
+          type: DEPENDENT
+          key: storeonce.info
+          delay: '0'
+          lifetime: 7d
+          item_prototypes:
+            -
+              uuid: 072e1cbfe2d74055abb93073e8c327b4
+              name: 'Storeonce deduplication'
+              type: DEPENDENT
+              key: 'stoeonce.info.dedup[{#SLOT}]'
+              delay: '0'
+              trends: '0'
+              value_type: TEXT
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - '$.[{#SLOT}].overallDedupeRatio'
+              master_item:
+                key: 'storeonce.sh[HPEVersion]'
+              tags:
+                -
+                  tag: DEDUP
+            -
+              uuid: 141b38081d5847c093d1c74b45aca5f6
+              name: 'Storeonce overal free space'
+              type: DEPENDENT
+              key: 'stoeonce.info.free.disk[{#SLOT}]'
+              delay: '0'
+              trends: '0'
+              value_type: TEXT
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - '$.[{#SLOT}].overallLocalFreeBytes'
+              master_item:
+                key: 'storeonce.sh[HPEVersion]'
+              tags:
+                -
+                  tag: DISK
+              trigger_prototypes:
+                -
+                  uuid: 590c932343f84ff59dd1ee83863fa69a
+                  expression: 'last(/Storeonce/stoeonce.info.free.disk[{#SLOT}])<5497558138880'
+                  name: 'Storeonce free space <5Tb'
+                  priority: HIGH
+            -
+              uuid: 5ede71c7357846aab57341079b650ed5
+              name: 'Storeonce heals'
+              type: DEPENDENT
+              key: 'stoeonce.info.heals[{#SLOT}]'
+              delay: '0'
+              trends: '0'
+              value_type: TEXT
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - '$.[{#SLOT}].systemHealthSummary.total'
+              master_item:
+                key: 'storeonce.sh[HPEVersion]'
+              tags:
+                -
+                  tag: HEALS
+              trigger_prototypes:
+                -
+                  uuid: 22753b5b739b42ef8831507f02636612
+                  expression: 'last(/Storeonce/stoeonce.info.heals[{#SLOT}])>1'
+                  name: 'Storeonce heals worning'
+                  priority: HIGH
+            -
+              uuid: 82fdbc04390d4a8286fcff72111add19
+              name: 'Storeonce overal Capacity'
+              type: DEPENDENT
+              key: 'stoeonce.info.overal.disk[{#SLOT}]'
+              delay: '0'
+              trends: '0'
+              value_type: TEXT
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - '$.[{#SLOT}].overallLocalCapacityBytes'
+              master_item:
+                key: 'storeonce.sh[HPEVersion]'
+              tags:
+                -
+                  tag: DISK
+            -
+              uuid: 5a3f5cfc8eaf43caa33b467191e1466e
+              name: 'Storeonce version'
+              type: DEPENDENT
+              key: 'stoeonce.info.version[{#SLOT}]'
+              delay: '0'
+              trends: '0'
+              value_type: TEXT
+              description: 'VERSION: {#VERSION}'
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - '$.[{#SLOT}].highestSoftwareVersion'
+              master_item:
+                key: 'storeonce.sh[HPEVersion]'
+              tags:
+                -
+                  tag: VERSION
+          master_item:
+            key: 'storeonce.sh[HPEVersion]'
+          lld_macro_paths:
+            -
+              lld_macro: '{#OVERALDISK}'
+              path: $.overallLocalCapacityBytes
+            -
+              lld_macro: '{#OVERALFREEDISK}'
+              path: $.overallLocalFreeBytes
+            -
+              lld_macro: '{#HEALS}'
+              path: $.systemHealthSummary.total
+            -
+              lld_macro: '{#DEDUP}'
+              path: $.overallDedupeRatio
+            -
+              lld_macro: '{#SLOT}'
+              path: $.numReportedSystems
+            -
+              lld_macro: '{#VERSION}'
+              path: $.highestSoftwareVersion
+        -
+          uuid: fae42d709542440c81abd295c919551a
+          name: 'Discovery info'
+          type: DEPENDENT
+          key: storeonce.info.sn
+          delay: '0'
+          lifetime: 7d
+          item_prototypes:
+            -
+              uuid: 43e137f3626b4d2fb3e9f5896f942df9
+              name: 'Storeonce info'
+              type: DEPENDENT
+              key: 'storeonce.info.item[{#SLOT}]'
+              delay: '0'
+              trends: '0'
+              value_type: TEXT
+              description: |
+                {#NAME}
+                {#PRODUCT}
+                {#SERIAL}
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - '$.[{#SLOT}].hostname'
+              master_item:
+                key: 'storeonce.sh[HPEHostname]'
+              tags:
+                -
+                  tag: INFO
+          master_item:
+            key: 'storeonce.sh[HPEHostname]'
+          lld_macro_paths:
+            -
+              lld_macro: '{#NAME}'
+              path: $.hostname
+            -
+              lld_macro: '{#SERIAL}'
+              path: $.serialNumber
+            -
+              lld_macro: '{#PRODUCT}'
+              path: $.productName
+            -
+              lld_macro: '{#SLOT}'
+              path: $.slot
