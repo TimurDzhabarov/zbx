@@ -1,0 +1,638 @@
+zabbix_export:
+  version: '6.2'
+  date: '2023-03-13T12:53:53Z'
+  template_groups:
+    -
+      uuid: 7c2cb727f85b492d88cd56e17127c64d
+      name: Templates/SAN
+  templates:
+    -
+      uuid: c54295a2e8a94a1ab53035ef67f5f109
+      template: 'Nimble API discover template'
+      name: 'Nimble API discover template'
+      description: '#https://infosight.hpe.com/InfoSight/media/cms/active/public/pubs_REST_API_Reference_NOS_51x.whz/tfd1480349056195.html'
+      templates:
+        -
+          name: 'ICMP Ping'
+      groups:
+        -
+          name: Templates/SAN
+      items:
+        -
+          uuid: e8caac0ff62446569a99d8060c54eb73
+          name: nimblenet
+          type: EXTERNAL
+          key: 'nimble.py[{$NIMBLENAME},discovernet,0]'
+          trends: '0'
+          value_type: TEXT
+          tags:
+            -
+              tag: NET
+        -
+          uuid: 261f0fc11bc942ba9aae02f692af3033
+          name: 'Nimble space'
+          type: EXTERNAL
+          key: 'nimble.py[{$NIMBLENAME},discoverpools,0]'
+          delay: 10m
+          trends: '0'
+          value_type: TEXT
+          tags:
+            -
+              tag: SPACE
+        -
+          uuid: e6d90a8494d64152abb056af4985ab5c
+          name: 'Nimble shelve info'
+          type: EXTERNAL
+          key: 'nimble.py[{$NIMBLENAME},discovershelve,0]'
+          trends: '0'
+          value_type: TEXT
+          tags:
+            -
+              tag: PSU
+        -
+          uuid: 5c77868b79634bce8b1edd21eabb55c3
+          name: nimblealldisks
+          type: EXTERNAL
+          key: 'nimble.py[{$NIMBLENAME},disks,0]'
+          delay: 30m
+          trends: '0'
+          value_type: TEXT
+          tags:
+            -
+              tag: 'NIMBLE DISK'
+        -
+          uuid: f376649189c04890a3b7bc27969c76b1
+          name: 'Nimble sync'
+          type: EXTERNAL
+          key: 'nimble.py[{$NIMBLENAME},replication,0]'
+          trends: '0'
+          value_type: TEXT
+          tags:
+            -
+              tag: SYNC
+        -
+          uuid: b84907c57ac6490ea24c3b6f16e17f88
+          name: nimblefc
+          type: EXTERNAL
+          key: 'nimble.py[{$NIMBLENAME},statusfc,0]'
+          trends: '0'
+          value_type: TEXT
+          tags:
+            -
+              tag: FC
+      discovery_rules:
+        -
+          uuid: de1f7e3d28154d9dbf9dfeadb0e13ab6
+          name: 'Discovery nimble net'
+          type: DEPENDENT
+          key: nimble.discovernet
+          delay: '0'
+          item_prototypes:
+            -
+              uuid: 26070154592b4534a9b5bd71cfe23ef8
+              name: 'Nimble {#NETSLOT} {#NETPORTNAME} {#LINKSTATUS}'
+              type: DEPENDENT
+              key: 'nimble.[netstatus.netslot.{#NETSLOT}]'
+              delay: '0'
+              trends: '0'
+              value_type: TEXT
+              description: |
+                array name: {#NETARRAYNAME}
+                mac: {#MAC}
+                controller:  {#NETCONTR}
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - '$.[{#NETSLOT}].linkstatus'
+              master_item:
+                key: 'nimble.py[{$NIMBLENAME},discovernet,0]'
+              tags:
+                -
+                  tag: NET
+              trigger_prototypes:
+                -
+                  uuid: 93526713405c40c3bef72807f6d77fda
+                  expression: 'last(/Nimble API discover template/nimble.[netstatus.netslot.{#NETSLOT}])<>"link_status_up"'
+                  name: 'Nimble {#NETSLOT} {#NETPORTNAME} {#LINKSTATUS}'
+                  priority: HIGH
+                  tags:
+                    -
+                      tag: NET
+            -
+              uuid: 248e38d9102346909c6133b56b020b75
+              name: 'Nimble {#NETSLOT} {#NETPORTNAME} {#LINKSPEED}'
+              type: DEPENDENT
+              key: 'nimble.[netstatus.netspeed.{#NETSLOT}]'
+              delay: '0'
+              trends: '0'
+              value_type: TEXT
+              description: |
+                array name: {#NETARRAYNAME}
+                mac: {#MAC}
+                controller:  {#NETCONTR}
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - '$.[{#NETSLOT}].linkspeed'
+              master_item:
+                key: 'nimble.py[{$NIMBLENAME},discovernet,0]'
+              tags:
+                -
+                  tag: NET
+              trigger_prototypes:
+                -
+                  uuid: 9bde8451ec554c22989914ef9ddb27fd
+                  expression: 'last(/Nimble API discover template/nimble.[netstatus.netspeed.{#NETSLOT}])<>"link_speed_1000M" and last(/Nimble API discover template/nimble.[netstatus.netspeed.{#NETSLOT}])<>"link_speed_10000M"'
+                  name: 'Nimble {#NETSLOT} {#NETPORTNAME} {#LINKSPEED}'
+                  priority: HIGH
+                  tags:
+                    -
+                      tag: NET
+          master_item:
+            key: 'nimble.py[{$NIMBLENAME},discovernet,0]'
+          lld_macro_paths:
+            -
+              lld_macro: '{#NETSLOT}'
+              path: $.netslot
+            -
+              lld_macro: '{#NETARRAYNAME}'
+              path: $.netarrayname
+            -
+              lld_macro: '{#NETCONTR}'
+              path: $.netcontr
+            -
+              lld_macro: '{#NETPORTNAME}'
+              path: $.netportname
+            -
+              lld_macro: '{#LINKSPEED}'
+              path: $.linkspeed
+            -
+              lld_macro: '{#LINKSTATUS}'
+              path: $.linkstatus
+            -
+              lld_macro: '{#MAC}'
+              path: $.mac
+        -
+          uuid: b8b6bea87de9471babd24c3434a656ff
+          name: 'Nimble sync discovery'
+          type: DEPENDENT
+          key: nimble.discovery
+          delay: '0'
+          lifetime: 7d
+          item_prototypes:
+            -
+              uuid: f6fe22d667a2451e8b6a4c39303cba7c
+              name: 'Nimble {#NAME} sync status {#SYNC}'
+              type: DEPENDENT
+              key: 'nimble.[sync.{#NAME}]'
+              delay: '0'
+              trends: '0'
+              value_type: TEXT
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - '$.[{#SLOT}].sync'
+              master_item:
+                key: 'nimble.py[{$NIMBLENAME},replication,0]'
+              tags:
+                -
+                  tag: SYNC
+              trigger_prototypes:
+                -
+                  uuid: 32d78e5ec866449389ef13648729fa42
+                  expression: 'last(/Nimble API discover template/nimble.[sync.{#NAME}])<>"N/A" and last(/Nimble API discover template/nimble.[sync.{#NAME}])<>"Yes"'
+                  name: 'Nimble {#NAME} sync error'
+                  priority: HIGH
+                  description: 'last(/Nimble API discover template/nimble.[sync.{#NAME}])<>"N/A"'
+                  tags:
+                    -
+                      tag: SYNC
+          master_item:
+            key: 'nimble.py[{$NIMBLENAME},replication,0]'
+          lld_macro_paths:
+            -
+              lld_macro: '{#SLOT}'
+              path: $.slot
+            -
+              lld_macro: '{#NAME}'
+              path: $.name
+            -
+              lld_macro: '{#SYNC}'
+              path: $.sync
+        -
+          uuid: 1e4d0589df3a490dbb34263be3a5894c
+          name: 'Discovery nimble discs'
+          type: DEPENDENT
+          key: nimble.disks
+          delay: '0'
+          filter:
+            conditions:
+              -
+                macro: '{#STATE}'
+                operator: EXISTS
+                formulaid: A
+          lifetime: 3d
+          item_prototypes:
+            -
+              uuid: 238fc90d4cc44d5aa4c93ca9f82a3396
+              name: 'Disks from {#ARRAYNAME} slot {#SLOT}'
+              type: DEPENDENT
+              key: 'nimble.[disks.status.{#SLOT}]'
+              delay: '0'
+              trends: '0'
+              value_type: TEXT
+              description: |
+                Location: {#ARRAYNAME}
+                Type disk: {#TYPE}
+                S/N: {#SERIAL}
+                Model: {#MODEL}
+                STATUS: {#STATE}
+                SIZE: {#SIZE}
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - '$.[{#SLOT}].state'
+              master_item:
+                key: 'nimble.py[{$NIMBLENAME},disks,0]'
+              tags:
+                -
+                  tag: 'NIMBLE DISK'
+              trigger_prototypes:
+                -
+                  uuid: b1fd1790294a499dbd7c8725cf08df25
+                  expression: 'last(/Nimble API discover template/nimble.[disks.status.{#SLOT}])<>"okay"'
+                  name: 'Disk from {#ARRAYNAME} slot {#SLOT} is {#STATE}'
+                  opdata: '{#STATE}'
+                  priority: HIGH
+                  manual_close: 'YES'
+                  tags:
+                    -
+                      tag: DISK
+          master_item:
+            key: 'nimble.py[{$NIMBLENAME},disks,0]'
+          lld_macro_paths:
+            -
+              lld_macro: '{#MODEL}'
+              path: $.model
+            -
+              lld_macro: '{#SERIAL}'
+              path: $.serial
+            -
+              lld_macro: '{#SLOT}'
+              path: $.slot
+            -
+              lld_macro: '{#STATE}'
+              path: $.state
+            -
+              lld_macro: '{#TYPE}'
+              path: $.type
+            -
+              lld_macro: '{#ARRAYNAME}'
+              path: $.arrayname
+            -
+              lld_macro: '{#SIZE}'
+              path: $.siza
+        -
+          uuid: 55e5b8351c35439c9da58e908172902a
+          name: 'Discovery nimble info'
+          type: DEPENDENT
+          key: nimble.info
+          delay: '0'
+          lifetime: 7d
+          item_prototypes:
+            -
+              uuid: 7c0b6478ddef408d9d3c358bb0998440
+              name: 'nimble {#ARRAYNAME} controller {#ACTRL} temperature {#ATEMP}'
+              type: DEPENDENT
+              key: 'nimble.[shelf.actrl.temp.{#ARRAYNAME}]'
+              delay: '0'
+              trends: '0'
+              value_type: TEXT
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - '$.[{#SHSLOT}].atempstatus'
+              master_item:
+                key: 'nimble.py[{$NIMBLENAME},discovershelve,0]'
+              tags:
+                -
+                  tag: Temperature
+            -
+              uuid: afe16992169b4d27a51618571c74f6c9
+              name: 'nimble {#ARRAYNAME} controller {#ACTRL} fan{#AFAN}'
+              type: DEPENDENT
+              key: 'nimble.[shelf.afan.{#ARRAYNAME}]'
+              delay: '0'
+              trends: '0'
+              value_type: TEXT
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - '$.[{#SHSLOT}].afanstatus'
+              master_item:
+                key: 'nimble.py[{$NIMBLENAME},discovershelve,0]'
+              tags:
+                -
+                  tag: FAN
+              trigger_prototypes:
+                -
+                  uuid: a9a180110fc14933b0bf93e886263bf4
+                  expression: 'last(/Nimble API discover template/nimble.[shelf.afan.{#ARRAYNAME}])<>"OK"'
+                  name: 'Nimble fan {#ARRAYNAME} {#ACTRL} not OK'
+                  priority: HIGH
+                  tags:
+                    -
+                      tag: FAN
+                -
+                  uuid: c7bea13e3ed84061b59e578e03f99657
+                  expression: 'last(/Nimble API discover template/nimble.[shelf.afan.{#ARRAYNAME}])<>"OK"'
+                  name: 'Nimble Temperature {#ARRAYNAME} {#ACTRL} not OK'
+                  priority: HIGH
+                  tags:
+                    -
+                      tag: Temperature
+            -
+              uuid: 3193855cde8c48b8ab07915348655ed3
+              name: 'nimble {#ARRAYNAME} controller {#BCTRL} temperature {#BTEMP}'
+              type: DEPENDENT
+              key: 'nimble.[shelf.bctrl.temp.{#ARRAYNAME}]'
+              delay: '0'
+              trends: '0'
+              value_type: TEXT
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - '$.[{#SHSLOT}].btempstatus'
+              master_item:
+                key: 'nimble.py[{$NIMBLENAME},discovershelve,0]'
+              tags:
+                -
+                  tag: Temperature
+              trigger_prototypes:
+                -
+                  uuid: 6e39d7a7a70440789ec530a2d7b21cf0
+                  expression: 'last(/Nimble API discover template/nimble.[shelf.bctrl.temp.{#ARRAYNAME}])<>"OK"'
+                  name: 'Nimble Temperature {#ARRAYNAME} {#BCTRL} not OK'
+                  priority: HIGH
+                  tags:
+                    -
+                      tag: Temperature
+            -
+              uuid: cbdacc1bf3b045c2a0922ac59c9ac3b0
+              name: 'nimble {#ARRAYNAME} controller {#BCTRL} fan {#BFAN}'
+              type: DEPENDENT
+              key: 'nimble.[shelf.bfan.{#ARRAYNAME}]'
+              delay: '0'
+              trends: '0'
+              value_type: TEXT
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - '$.[{#SHSLOT}].bfanstatus'
+              master_item:
+                key: 'nimble.py[{$NIMBLENAME},discovershelve,0]'
+              tags:
+                -
+                  tag: FAN
+              trigger_prototypes:
+                -
+                  uuid: 7cc7ea4f5de3466c8f8a3138890f00e8
+                  expression: 'last(/Nimble API discover template/nimble.[shelf.bfan.{#ARRAYNAME}])<>"OK"'
+                  name: 'Nimble fan {#ARRAYNAME} {#BCTRL} not OK'
+                  priority: HIGH
+                  tags:
+                    -
+                      tag: FAN
+            -
+              uuid: 14f8096d1f474f4a8416062c66e98fdf
+              name: 'nimble {#ARRAYNAME} PSU status {#PSU}'
+              type: DEPENDENT
+              key: 'nimble.[shelf.psu.{#ARRAYNAME}]'
+              delay: '0'
+              trends: '0'
+              value_type: TEXT
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - '$.[{#SHSLOT}].psustatus'
+              master_item:
+                key: 'nimble.py[{$NIMBLENAME},discovershelve,0]'
+              tags:
+                -
+                  tag: PSU
+              trigger_prototypes:
+                -
+                  uuid: 7270608480604ff9938da3fa0559d03e
+                  expression: 'last(/Nimble API discover template/nimble.[shelf.psu.{#ARRAYNAME}])<>"OK"'
+                  name: 'Nimble PSU {#ARRAYNAME} not OK'
+                  priority: HIGH
+                  tags:
+                    -
+                      tag: PSU
+          master_item:
+            key: 'nimble.py[{$NIMBLENAME},discovershelve,0]'
+          lld_macro_paths:
+            -
+              lld_macro: '{#SHSLOT}'
+              path: $.shslot
+            -
+              lld_macro: '{#ARRAYNAME}'
+              path: $.arrayname
+            -
+              lld_macro: '{#ACTRL}'
+              path: $.actrlside
+            -
+              lld_macro: '{#AFAN}'
+              path: $.afanstatus
+            -
+              lld_macro: '{#ATEMP}'
+              path: $.atempstatus
+            -
+              lld_macro: '{#BCTRL}'
+              path: $.bctrlside
+            -
+              lld_macro: '{#BFAN}'
+              path: $.bfanstatus
+            -
+              lld_macro: '{#BTEMP}'
+              path: $.btempstatus
+            -
+              lld_macro: '{#PSU}'
+              path: $.psustatus
+        -
+          uuid: deac255a05c44204b7619025875ae9d6
+          name: 'Discovery space'
+          type: DEPENDENT
+          key: nimble.space
+          delay: '0'
+          lifetime: 7d
+          item_prototypes:
+            -
+              uuid: 623ce5bef168465ab6e7fa32793de2f1
+              name: 'Nimble capacity space {#NAME}'
+              type: DEPENDENT
+              key: 'nimble.[space.capacity.{#SLOT}.{#NAME}]'
+              delay: '0'
+              trends: '0'
+              value_type: TEXT
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - '$.[{#SLOT}].capacity'
+              master_item:
+                key: 'nimble.py[{$NIMBLENAME},discoverpools,0]'
+              tags:
+                -
+                  tag: SPACE
+            -
+              uuid: 99079b19ce3a40f9bfc7a71cffeff3df
+              name: 'Nimble free space {#NAME}'
+              type: DEPENDENT
+              key: 'nimble.[space.free.{#SLOT}.{#NAME}]'
+              delay: '0'
+              trends: '0'
+              value_type: TEXT
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - '$.[{#SLOT}].free'
+              master_item:
+                key: 'nimble.py[{$NIMBLENAME},discoverpools,0]'
+              tags:
+                -
+                  tag: SPACE
+              trigger_prototypes:
+                -
+                  uuid: e90ef4eebac14b8ab8ab9502bf3d3b42
+                  expression: 'last(/Nimble API discover template/nimble.[space.free.{#SLOT}.{#NAME}])<10'
+                  name: 'Nimble {#NAME} low free space  {ITEM.LASTVALUE}'
+                  priority: HIGH
+          master_item:
+            key: 'nimble.py[{$NIMBLENAME},discoverpools,0]'
+          lld_macro_paths:
+            -
+              lld_macro: '{#SLOT}'
+              path: $.slot
+            -
+              lld_macro: '{#NAME}'
+              path: $.arrayname
+            -
+              lld_macro: '{#CAPACITY}'
+              path: $.capacity
+            -
+              lld_macro: '{#FREE}'
+              path: $.free
+        -
+          uuid: e2e71972f402467b96e5f93cca2216a9
+          name: 'Discovery nimble fc'
+          type: DEPENDENT
+          key: nimble.statusfc
+          delay: '0'
+          item_prototypes:
+            -
+              uuid: 188cbf239ccc40c4a184c317c0f1d137
+              name: 'Nimble FC {#FC} linkspeed'
+              type: DEPENDENT
+              key: 'nimble.[linkspeed.fc.{#FC}]'
+              delay: '0'
+              trends: '0'
+              value_type: TEXT
+              description: |
+                array name: {#FCARRAYNAME}
+                fc controller: {#FCCONTR}
+                fc port name: {#FCPORTSNAME}
+                number of fc slot: {#FC}
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - '$.[{#FC}].linkfcinfo'
+              master_item:
+                key: 'nimble.py[{$NIMBLENAME},statusfc,0]'
+              tags:
+                -
+                  tag: FC
+              trigger_prototypes:
+                -
+                  uuid: ea633c0c2abd4cf29c40ccdc34768e1f
+                  expression: 'last(/Nimble API discover template/nimble.[linkspeed.fc.{#FC}])<>"plat_fc_link_speed_16G"'
+                  name: 'Nimble FC {#FC} linkspeed {#LINKFCINFO}'
+                  opdata: '{#LINKFCINFO}'
+                  priority: HIGH
+                  manual_close: 'YES'
+                  tags:
+                    -
+                      tag: FC
+            -
+              uuid: d218a216a8fe48dfbd66dace11f9693a
+              name: 'Nimble FC {#FC} linkstatus'
+              type: DEPENDENT
+              key: 'nimble.[statusfc.fc.{#FC}]'
+              delay: '0'
+              trends: '0'
+              value_type: TEXT
+              description: |
+                array name: {#FCARRAYNAME}
+                fc controller: {#FCCONTR}
+                fc port name: {#FCPORTSNAME}
+                number of fc slot: {#FC}
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - '$.[{#FC}].linkfcstatus'
+              master_item:
+                key: 'nimble.py[{$NIMBLENAME},statusfc,0]'
+              tags:
+                -
+                  tag: FC
+              trigger_prototypes:
+                -
+                  uuid: 50fcbfdaf1bd47b8aa6793dafbc3f42c
+                  expression: 'last(/Nimble API discover template/nimble.[statusfc.fc.{#FC}])<>"plat_fc_link_status_up"'
+                  name: 'Nimble FC {#FC} linkstatus {#LINKFCSTATUS}'
+                  opdata: '{#LINKFCSTATUS}'
+                  priority: HIGH
+                  manual_close: 'YES'
+                  tags:
+                    -
+                      tag: FC
+          master_item:
+            key: 'nimble.py[{$NIMBLENAME},statusfc,0]'
+          lld_macro_paths:
+            -
+              lld_macro: '{#FCARRAYNAME}'
+              path: $.fcarrayname
+            -
+              lld_macro: '{#FCCONTR}'
+              path: $.fccontr
+            -
+              lld_macro: '{#FCPORTSNAME}'
+              path: $.fcportname
+            -
+              lld_macro: '{#LINKFCINFO}'
+              path: $.linkfcinfo
+            -
+              lld_macro: '{#LINKFCSTATUS}'
+              path: $.linkfcstatus
+            -
+              lld_macro: '{#FC}'
+              path: $.fcslot
+      macros:
+        -
+          macro: '{$ARG2}'
+          value: 0-100
+        -
+          macro: '{$NIMBLENAME}'
+          value: 'YOUR URL'
